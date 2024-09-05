@@ -5,12 +5,12 @@
  */
 use std::collections::HashMap;
 
-struct Node {
+pub struct Node {
     // data common to all nodes:
-    children: Vec<Node>,
+    pub children: Vec<Node>,
 
     // data specific to each node type:
-    node_type: NodeType,
+    pub node_type: NodeType,
 }
 
 
@@ -21,7 +21,7 @@ struct Node {
     In Rust, they can be an enum (Rust's keyword for a "tagged union" or "sum type").
  */
 
-enum NodeType {
+pub enum NodeType {
     Text(String),
     Element(ElementData),
 }

@@ -1,16 +1,16 @@
+//! Basic DOM data structures.
+
+use std::collections::HashMap;
+
+
 /*
     The DOM
 
     The DOM is a tree of nodes. A node has zero or more children.
  */
-use std::collections::HashMap;
-
 pub struct Node {
-    // data common to all nodes:
-    pub children: Vec<Node>,
-
-    // data specific to each node type:
-    pub node_type: NodeType,
+    pub node_type: NodeType, // data specific to each node type
+    pub children: Vec<Node>, // data common to all nodes
 }
 
 
@@ -19,11 +19,16 @@ pub struct Node {
     but for now we will ignore most of them and say that a node is either an Element or a Text node.
     In a language with inheritance these would be subtypes of Node.
     In Rust, they can be an enum (Rust's keyword for a "tagged union" or "sum type").
- */
 
+    e.g.
+        NodeType {
+            Element(ElementData),
+            Text("Hello, World!"),
+        }
+ */
 pub enum NodeType {
-    Text(String),
     Element(ElementData),
+    Text(String),
 }
 
 
@@ -31,13 +36,22 @@ pub enum NodeType {
     An element includes a tag name and any number of attributes, which can be stored as a map from
     names to values. This engine doesn't support namespaces, so it just stores tag and attribute names
     as simple strings.
- */
 
+    e.g.
+        ElementData {
+            tag_name: "p",
+            attributes: AttributeMap,
+        }
+ */
 struct ElementData {
     tag_name: String,
     attributes: AttributeMap,
 }
 
+/*
+    e.g.
+        { "id": "...", "class": "...", "style": "..." }
+ */
 type AttributeMap = HashMap<String, String>;
 
 

@@ -1,3 +1,17 @@
+//! A simple parser for a tiny subset of HTML.
+//!
+//! Can parse basic opening and closing tags, and text nodes.
+//!
+//! Not yet supported:
+//!     - Comments
+//!     - Doctypes and processing instructions
+//!     - Self-closing tags
+//!     - Non-well-formed markup
+//!     - Character entities
+
+use crate::dom;
+
+
 /*
     A Simple HTML Dialect
 
@@ -24,57 +38,62 @@
         - Error handling (e.g. unbalanced or improperly nested tags)
         - Namespaces and other XHTML syntax: <html:body>
         - Character encoding detection
- */
 
-/*
     Let's walk through this HTML parser, keeping in mind that this is just one way to do it (and
     probably not the best way). Its structure is based loosely on the [tokenizer](https://github.com/servo/rust-cssparser/blob/032e7aed7acc31350fadbbc3eb5a9bbf6f4edb2e/src/tokenizer.rs)
     module from Servo's [cssparser](https://github.com/servo/rust-cssparser) libaray.
     It has no real error handling; in most cases, it just abouts when faced with unexpected syntax.
- */
 
-/*
     The parser stores its input string and a current position within the string.
     The position is the index of the next character we haven't processed yet.
  */
-use std::io::Chain;
-use std::thread::sleep;
-use crate::dom;
-use crate::dom::{element, Node};
 
+/*
+    Default HTML Parser structure.
+
+    input: A String type input parameter.
+    position: position of input.
+
+    e.g.
+        Parser {
+            input: "...",
+            position: 0,
+        }
+ */
 struct Parser {
-    pos: usize, // "usize" is an unsigned integer, similar to "size_t" in C
     input: String,
+    position: usize, // "usize" is an unsigned integer, similar to "size_t" in C
 }
 
 
 /*
     We can use this to implement some simple methods for peeking at the next characters in the input.
- */
 
+    Implemented HTML Parser based on Default HTML Parser
+ */
 impl Parser {
     /// Read the current character without consuming it.
     fn next_char(&self) -> char {
-        self.input[self.pos..].chars().next().unwrap()
+        self.input[self.position..].chars().next().unwrap()
     }
 
     /// Does the next characters start with the given string?
     fn starts_with(&self, s: &str) -> bool {
-        self.input[self.pos..].starts_with(s)
+        self.input[self.position..].starts_with(s)
     }
 
     /// If the exact string `s` is found at the current position, consume it. Otherwise, panic.
     fn expect(&mut self, s: &str) {
         if self.starts_with(s) {
-            self.pos += s.len();
+            self.position += s.len();
         } else {
-            panic!("Expected {:?} at byte {} but it was not found", s, self.pos);
+            panic!("Expected {:?} at byte {} but it was not found", s, self.position);
         }
     }
 
     /// Return true if all input is consumed.
     fn eof(&self) -> bool {
-        self.pos >= self.input.len()
+        self.position >= self.input.len()
     }
 
 
@@ -86,7 +105,7 @@ impl Parser {
     /// Return the current character, and advance `self.pos` to the next character.
     fn consume_char(&mut self) -> char {
         let c = self.next_char();
-        self.pos += c.len_utf8();
+        self.position += c.len_utf8();
         c
     }
 

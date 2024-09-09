@@ -11,6 +11,9 @@
     A CSS stylesheet is a series of rules. (In the example stylesheet above,
     each line contains one rule.)
  */
+use std::num::ParseIntError;
+use std::process::id;
+
 pub struct Stylesheet {
     pub rules: Vec<Rule>,
 }
@@ -104,4 +107,65 @@ pub struct Color {
     g: u8, // green
     b: u8, // blue
     a: u8, // alpha
+}
+
+/*
+    Specificity is one of the ways a rendering engine decides which style overrides
+    the other in a conflict. If a stylesheet contains two rules that match an element,
+    the rule with the matching selector of higher specificity can override values from
+    the one with lower specificity.
+
+    The specificity of a selector is based on its components. An ID selector is more
+    specific than a class selector, which is more specific than a tag selector.
+    Within each of these “levels,” more selectors beats fewer.
+
+    Count of (id, class, tag)
+ */
+pub type Specificity = (usize, usize, usize);
+
+
+// Implementations
+impl Selector {
+    pub fn specificity(&self) -> Specificity {
+        // http://www.w3.org/TR/selectors/#specificity
+        let Selector::Simple(ref simple) = *self;
+        let id_count: usize = simple.id.iter().count();
+        let class_count: usize = simple.class.len();
+        let tag_count: usize = simple.tag_name.iter().count();
+        (id_count, class_count, tag_count)
+    }
+}
+
+impl Value {
+    /// Return the size of a length in px, or zero for non-lengths.
+    pub fn to_px(&self) -> f32 {
+        match *self {
+            Value::Length(f, Unit::Px) => f,
+            _ => 0.0,
+        }
+    }
+}
+
+// Parser
+
+/*
+    CSS Parser struct
+
+    e.g.
+        Parser {
+            input: "string type css input",
+            pos: position of input string,
+        }
+ */
+struct Parser {
+    input: String,
+    position: usize,
+}
+
+// Implementation of Parser
+impl Parser {
+    /// Return true if all input is consumed.
+    fn eof(&self) -> bool {
+        self.position >= self.input.len()
+    }
 }

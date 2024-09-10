@@ -104,7 +104,7 @@ impl Parser {
 
     /// Return the current character, and advance `self.pos` to the next character.
     fn consume_char(&mut self) -> char {
-        let c = self.next_char();
+        let c: char = self.next_char();
         self.position += c.len_utf8();
         c
     }
@@ -118,7 +118,7 @@ impl Parser {
 
     /// Consume characters until `test` returns false.
     fn consume_while(&mut self, test: impl Fn(char) -> bool) -> String {
-        let mut result = String::new();
+        let mut result: String = String::new();
         while !self.eof() && test(self.next_char()) {
             result.push(self.consume_char());
         }
@@ -138,7 +138,7 @@ impl Parser {
 
     /// Parse a tag or attribute name.
     fn parse_name(&mut self) -> String {
-        self.consume_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9'))
+        self.consume_while(|c: char| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9'))
     }
 
 
@@ -167,6 +167,6 @@ impl Parser {
 
     /// Parse a text node.
     fn parse_text(&mut self) -> dom::Node {
-        dom::text(self.consume_while(|c| c != '<'))
+        dom::text(self.consume_while(|c: char| c != '<'))
     }
 }

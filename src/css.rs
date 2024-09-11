@@ -223,4 +223,173 @@ impl Parser {
     fn consume_whitespace(&mut self) {
         self.consume_while(char::is_whitespace);
     }
+
+    /// Parse a property name or keyword.
+    fn parse_identifier(&mut self) -> String {
+        self.consume_while(valid_identifier_char)
+    }
+
+    /// Parse two hexadecimal digits.
+    fn parse_hex_pair(&mut self) -> u8 {
+        let s: &str = &self.input[self.position..self.position + 2];
+        self.position += 2;
+        u8::from_str_radix(s, 16).unwrap()
+    }
+
+    /// Parse color.
+    fn parse_color(&mut self) -> Value {
+        self.expect_char('#');
+        Value::ColorValue(Color {
+            r: self.parse_hex_pair(),
+            g: self.parse_hex_pair(),
+            b: self.parse_hex_pair(),
+            a: 255,
+        })
+    }
+
+    /// Parse unit
+    fn parse_unit(&mut self) -> Unit {
+        match &*self.parse_identifier().to_ascii_lowercase() {
+            "px" => Unit::Px,
+            _ => panic!("unrecognized unit"),
+        }
+    }
+
+    /// Parse float
+    fn parse_float(&mut self) -> f32 {
+        self.consume_while(|c: char| matches!(c, '0'..='9' | '.')).parse().unwrap()
+    }
+
+    // Methods for parsing values
+
+    /// Parse length.
+    fn parse_length(&mut self) -> Value {
+        Value::Length(self.parse_float(), self.parse_unit())
+    }
+
+    /// Parse value.
+    fn parse_value(&mut self) -> Value {
+        match self.next_char() {
+            '0'..='9' => self.parse_length(),
+            '#' => self.parse_color(),
+            _ => Value::Keyword(self.parse_identifier()),
+        }
+    }
+
+    /// Parse one `<property>: <value>;` declaration (Inline CSS).
+    fn parse_declaration(&mut self) -> Declaration {
+        let name: String = self.parse_identifier();
+        self.consume_whitespace();
+        self.expect_char(':');
+        self.consume_whitespace();
+
+        let value: Value = self.parse_value();
+        self.consume_whitespace();
+        self.expect_char(';');
+
+        Declaration { name, value }
+    }
+
+    /// Parse a list of declarations (Inline CSSs) enclosed in `{ ... }`
+    fn parse_declarations(&mut self) -> Vec<Declaration> {
+        self.expect_char('{');
+        let mut declarations: Vec<Declaration> = Vec::new();
+        loop {
+            self.consume_whitespace();
+            if self.next_char() == '}' {
+                self.consume_char();
+                break;
+            }
+            declarations.push(self.parse_declaration());
+        }
+        declarations
+    }
+
+    /// Parse one simple selector, e.g: `type#id.class1.class2.class3`
+    fn parse_simple_selector(&mut self) -> SimpleSelector {
+        let mut selector = SimpleSelector {
+            tag_name: None,
+            id: None,
+            class: Vec::new(),
+        };
+        while !self.eof() {
+            match self.next_char() {
+                '#' => {
+                    self.consume_char();
+                    selector.id = Some(self.parse_identifier());
+                }
+                '.' => {
+                    self.consume_char();
+                    selector.class.push(self.parse_identifier());
+                }
+                '*' => {
+                    // universal selector
+                    self.consume_char();
+                }
+                c if valid_identifier_char(c) => {
+                    selector.tag_name = Some(self.parse_identifier());
+                }
+                _ => break
+            }
+        }
+        selector
+    }
+
+    /// Parse a comma-separated list of selectors.
+    fn parse_selectors(&mut self) -> Vec<Selector> {
+        let mut selectors: Vec<Selector> = Vec::new();
+        loop {
+            selectors.push(Selector::Simple(self.parse_simple_selector()));
+            self.consume_whitespace();
+            match self.next_char() {
+                ',' => {
+                    self.consume_char();
+                    self.consume_whitespace();
+                }
+                '{' => break,
+                c => panic!("Unexpected character {} in selector list", c),
+            }
+        }
+        // Return selectors with highest specificity first, for use in matching.
+        selectors.sort_by_key(|s: &Selector| s.specificity());
+        selectors
+    }
+
+    /// Parse a rule set: `<selectors> { <declarations> }`.
+    fn parse_rule(&mut self) -> Rule {
+        Rule {
+            selectors: self.parse_selectors(),
+            declarations: self.parse_declarations(),
+        }
+    }
+
+    /// Parse a list of rule sets, separated by optional whitespace.
+    fn parse_rules(&mut self) -> Vec<Rule> {
+        let mut rules: Vec<Rule> = Vec::new();
+        loop {
+            self.consume_whitespace();
+            if self.eof() {
+                break;
+            }
+            rules.push(self.parse_rule());
+        }
+        rules
+    }
+}
+
+
+/// check validation of char input
+/*
+    char input must be a-z or A-Z or 0-9 or - or _
+ */
+fn valid_identifier_char(c: char) -> bool {
+    // TODO: Include U+00A0 and higher.
+    matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_')
+}
+
+
+/// Parse a whole CSS stylesheet.
+pub fn parse(source: String) -> Stylesheet {
+    let mut parser: Parser = Parser { input: source, position: 0 };
+    Stylesheet { rules: parser.parse_rules() }
 }

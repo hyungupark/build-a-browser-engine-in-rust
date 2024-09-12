@@ -27,7 +27,7 @@ pub struct Node {
         }
  */
 pub enum NodeType {
-    Element(ElementData),
+    Element(Element),
     Text(String),
 }
 
@@ -38,14 +38,14 @@ pub enum NodeType {
     as simple strings.
 
     e.g.
-        ElementData {
+        Element {
             tag_name: "p",
             attributes: AttributeMap,
         }
  */
-struct ElementData {
-    tag_name: String,
-    attributes: AttributeMap,
+pub struct Element {
+    pub tag_name: String,
+    pub attributes: AttributeMap,
 }
 
 /*
@@ -71,6 +71,6 @@ pub fn text(data: String) -> Node {
 pub fn element(tag_name: String, attributes: AttributeMap, children: Vec<Node>) -> Node {
     Node {
         children,
-        node_type: NodeType::Element(ElementData { tag_name, attributes }),
+        node_type: NodeType::Element(Element { tag_name, attributes }),
     }
 }

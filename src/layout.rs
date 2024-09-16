@@ -67,6 +67,19 @@ struct Dimensions {
         </container>
  */
 
+
+/*
+    A box can be a block node, an inline node, or an anonymous block box. (This will
+    need to change when I implement text layout, because line wrapping can cause a
+    single inline node to split into multiple boxes. But it will do for now.)
+ */
+enum BoxType<'a> {
+    BlockNode(&'a style::StyledNode<'a>),
+    InlineNode(&'a style::StyledNode<'a>),
+    AnonymousBlock,
+}
+
+
 /// A node in the layout tree.
 /*
     The Layout Tree
@@ -80,16 +93,6 @@ pub struct LayoutBox<'a> {
     pub children: Vec<LayoutBox<'a>>,
 }
 
-/*
-    A box can be a block node, an inline node, or an anonymous block box. (This will
-    need to change when I implement text layout, because line wrapping can cause a
-    single inline node to split into multiple boxes. But it will do for now.)
- */
-enum BoxType<'a> {
-    BlockNode(&'a style::StyledNode<'a>),
-    InlineNode(&'a style::StyledNode<'a>),
-    AnonymousBlock,
-}
 
 impl<'a> LayoutBox<'a> {
     fn new(box_type: BoxType<'a>) -> LayoutBox {
@@ -104,6 +107,32 @@ impl<'a> LayoutBox<'a> {
         match self.box_type {
             BoxType::BlockNode(node) | BoxType::InlineNode(node) => node,
             BoxType::AnonymousBlock => panic!("Anonymous block box has no styled node"),
+        }
+    }
+}
+
+
+/*
+    To build the layout tree, we need to look at the display property for each DOM node.
+    I added some code to the style module to get the display value for a node. If there's
+    no specified value it returns the initial value, "inline".
+
+    see style::Display
+    see style::StyledNode
+ */
+
+/*
+    Now we can walk through the style tree, build a LayoutBox for each node, and then
+    insert boxes for the node's children. If a node's display property is set to 'none'
+    then it is not included in the layout tree.
+ */
+impl LayoutBox {
+    // Constructor function
+    fn new(box_type: BoxType) -> LayoutBox {
+        LayoutBox {
+            box_type,
+            dimensions: Default::default(), // initially set all fields to 0.0
+            children: Vec::new(),
         }
     }
 }

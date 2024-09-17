@@ -94,7 +94,22 @@ pub struct LayoutBox<'a> {
 }
 
 
+/*
+    To build the layout tree, we need to look at the display property for each DOM node.
+    I added some code to the style module to get the display value for a node. If there's
+    no specified value it returns the initial value, "inline".
+
+    see style::Display
+    see style::StyledNode
+ */
+
+/*
+    Now we can walk through the style tree, build a LayoutBox for each node, and then
+    insert boxes for the node's children. If a node's display property is set to 'none'
+    then it is not included in the layout tree.
+ */
 impl<'a> LayoutBox<'a> {
+    // Constructor function
     fn new(box_type: BoxType<'a>) -> LayoutBox {
         LayoutBox {
             box_type,
@@ -112,27 +127,23 @@ impl<'a> LayoutBox<'a> {
 }
 
 
-/*
-    To build the layout tree, we need to look at the display property for each DOM node.
-    I added some code to the style module to get the display value for a node. If there's
-    no specified value it returns the initial value, "inline".
+/// Build the tree of LayoutBoxes, but don't perform any layout calculations yet.
+fn build_layout_tree<'a>(style_node: &'a style::StyledNode<'a>) -> LayoutBox<'a> {
+    // Create the root box.
+    let mut root: LayoutBox = LayoutBox::new(match style_node.display() {
+        style::Display::Block => BoxType::BlockNode(style_node),
+        style::Display::Inline => BoxType::InlineNode(style_node),
+        style::Display::None => panic!("Root node has display: none.")
+    });
 
-    see style::Display
-    see style::StyledNode
- */
-
-/*
-    Now we can walk through the style tree, build a LayoutBox for each node, and then
-    insert boxes for the node's children. If a node's display property is set to 'none'
-    then it is not included in the layout tree.
- */
-impl LayoutBox {
-    // Constructor function
-    fn new(box_type: BoxType) -> LayoutBox {
-        LayoutBox {
-            box_type,
-            dimensions: Default::default(), // initially set all fields to 0.0
-            children: Vec::new(),
+    // Create the descendant boxes.
+    for child in &style_node.children {
+        match child.display() {
+            style::Display::Block => root.children.push(build_layout_tree(child)),
+            style::Display::Inline => root.get_inline_container().children.push(build_layout_tree(child)),
+            style::Display::None => {} // Don't lay out nodes with `display: none;`
         }
     }
+
+    root
 }

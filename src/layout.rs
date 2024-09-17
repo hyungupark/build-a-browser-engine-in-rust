@@ -108,24 +108,6 @@ pub struct LayoutBox<'a> {
     insert boxes for the node's children. If a node's display property is set to 'none'
     then it is not included in the layout tree.
  */
-impl<'a> LayoutBox<'a> {
-    // Constructor function
-    fn new(box_type: BoxType<'a>) -> LayoutBox {
-        LayoutBox {
-            box_type,
-            dimensions: Default::default(), // initially set all fields to 0.0
-            children: Vec::new(),
-        }
-    }
-
-    fn get_styled_node(&self) -> &'a style::StyledNode<'a> {
-        match self.box_type {
-            BoxType::BlockNode(node) | BoxType::InlineNode(node) => node,
-            BoxType::AnonymousBlock => panic!("Anonymous block box has no styled node"),
-        }
-    }
-}
-
 
 /// Build the tree of LayoutBoxes, but don't perform any layout calculations yet.
 fn build_layout_tree<'a>(style_node: &'a style::StyledNode<'a>) -> LayoutBox<'a> {
@@ -146,4 +128,62 @@ fn build_layout_tree<'a>(style_node: &'a style::StyledNode<'a>) -> LayoutBox<'a>
     }
 
     root
+}
+
+impl LayoutBox {
+    // Constructor function
+    fn new(box_type: BoxType) -> LayoutBox {
+        LayoutBox {
+            box_type,
+            dimensions: Default::default(), // initially set all fields to 0.0
+            children: Vec::new(),
+        }
+    }
+
+    /*
+        If a block node contains an inline child, create an anonymous block box to
+        contain it. If there are several inline children in a row, put them all in
+        the same anonymous container.
+     */
+    /// Where a new inline child should go.
+    fn get_inline_container(&mut self) -> &mut LayoutBox {
+        match self.box_type {
+            BoxType::InlineNode(_) | AnonymousBlock => self,
+            BoxType::BlockNode(_) => {
+                // If we've just generated an anonymous block box, keep using it.
+                // Otherwise, create a new one.
+                match self.children.last() {
+                    Some(&LayoutBox { box_type: AnonymousBlock, .. }) => {}
+                    _ => self.children.push(LayoutBox::new(BoxType::AnonymousBlock))
+                }
+                self.children.last_mut().unwrap()
+            }
+        }
+    }
+}
+
+
+/*
+    Traversing the Layout Tree
+
+    The entry point to this code is the layout function, which takes a LayoutBox and
+    calculates its dimensions. We'll break this function into three cases, and implement
+    only one of them for now:
+ */
+impl LayoutBox {
+    /*
+        Traversing the Layout Tree
+
+        The entry point to this code is the layout function, which takes a LayoutBox
+        and calculates its dimensions. We’ll break this function into three cases,
+        and implement only one of them for now:
+     */
+    /// Lay out a box and its descendants.
+    fn layout(&mut self, containing_block: Dimensions) {
+        match self.box_type {
+            BoxType::BlockNode(_) => self.layout(containing_block),
+            BoxType::InlineNode(_) => {} // TODO
+            BoxType::AnonymousBlock => {} // TODO
+        }
+    }
 }

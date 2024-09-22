@@ -2,27 +2,27 @@
 
 use crate::{css, style};
 
-/*
-    The layout module takes the style tree and translates it into a bunch of rectangles in
-    a two-dimensional space.
-
-    The layout module's input is the style tree, and its output is yet another tree, the
-    "layout tree".
+/**
+ *  The layout module takes the style tree and translates it into a bunch of rectangles in
+ *  a two-dimensional space.
+ *
+ *  The layout module's input is the style tree, and its output is yet another tree, the
+ *  "layout tree".
  */
 
-/*
-    Layout is all about "boxes". A box is a rectangular section of a web page. It has a
-    width, a height, and a position on the page. This rectangle is called the "content area"
-    because it's where the box's content is drawn. The content may be text, image, video,
-    or other boxes.
-
-    A box may also have padding, borders, and margins surrounding its content area. The CSS
-    spec has a [diagram](https://www.w3.org/TR/CSS2/box.html#box-dimensions) showing how
-    all these layers fit together.
-
-    The engine stores a box's content area and surrounding areas in the following structure.
-
-    Rust note: `f32` is a 32-bit floating point type.
+/**
+ *  Layout is all about "boxes". A box is a rectangular section of a web page. It has a
+ *  width, a height, and a position on the page. This rectangle is called the "content area"
+ *  because it's where the box's content is drawn. The content may be text, image, video,
+ *  or other boxes.
+ *
+ *  A box may also have padding, borders, and margins surrounding its content area. The CSS
+ *  spec has a [diagram](https://www.w3.org/TR/CSS2/box.html#box-dimensions) showing how
+ *  all these layers fit together.
+ *
+ *  The engine stores a box's content area and surrounding areas in the following structure.
+ *
+ *  Rust note: `f32` is a 32-bit floating point type.
  */
 
 // CSS box model. All sizes are in px.
@@ -54,27 +54,27 @@ struct Dimensions {
 }
 
 
-/*
-    Block and Inline Layout
-
-    The CSS display property determines which type of box an element generates. CSS
-    defines several box types, each with its own layout rules. Here only going to talk
-    about two of them: "block" and "inline".
-
-    I'll use this bit of pseudo-HTML to illustrate the difference:
-        <container>
-            <a></a>
-            <b></b>
-            <c></c>
-            <d></d>
-        </container>
+/**
+ *  Block and Inline Layout
+ *
+ *  The CSS display property determines which type of box an element generates. CSS
+ *  defines several box types, each with its own layout rules. Here only going to talk
+ *  about two of them: "block" and "inline".
+ *
+ *  I'll use this bit of pseudo-HTML to illustrate the difference:
+ *      <container>
+ *          <a></a>
+ *          <b></b>
+ *          <c></c>
+ *          <d></d>
+ *      </container>
  */
 
 
-/*
-    A box can be a block node, an inline node, or an anonymous block box. (This will
-    need to change when I implement text layout, because line wrapping can cause a
-    single inline node to split into multiple boxes. But it will do for now.)
+/**
+ *  A box can be a block node, an inline node, or an anonymous block box. (This will
+ *  need to change when I implement text layout, because line wrapping can cause a
+ *  single inline node to split into multiple boxes. But it will do for now.)
  */
 enum BoxType<'a> {
     BlockNode(&'a style::StyledNode<'a>),
@@ -84,11 +84,11 @@ enum BoxType<'a> {
 
 
 /// A node in the layout tree.
-/*
-    The Layout Tree
-
-    The layout tree is a collection of boxes. A box has dimensions, and it may contain
-    child boxes.
+/**
+ *  The Layout Tree
+ *
+ *  The layout tree is a collection of boxes. A box has dimensions, and it may contain
+ *  child boxes.
  */
 pub struct LayoutBox<'a> {
     pub dimensions: Dimensions,
@@ -97,19 +97,19 @@ pub struct LayoutBox<'a> {
 }
 
 
-/*
-    To build the layout tree, we need to look at the display property for each DOM node.
-    I added some code to the style module to get the display value for a node. If there's
-    no specified value it returns the initial value, "inline".
-
-    see style::Display
-    see style::StyledNode
+/**
+ *  To build the layout tree, we need to look at the display property for each DOM node.
+ *  I added some code to the style module to get the display value for a node. If there's
+ *  no specified value it returns the initial value, "inline".
+ *
+ *  see style::Display
+ *  see style::StyledNode
  */
 
-/*
-    Now we can walk through the style tree, build a LayoutBox for each node, and then
-    insert boxes for the node's children. If a node's display property is set to 'none'
-    then it is not included in the layout tree.
+/**
+ *  Now we can walk through the style tree, build a LayoutBox for each node, and then
+ *  insert boxes for the node's children. If a node's display property is set to 'none'
+ *  then it is not included in the layout tree.
  */
 
 /// Build the tree of LayoutBoxes, but don't perform any layout calculations yet.
@@ -133,6 +133,14 @@ fn build_layout_tree<'a>(style_node: &'a style::StyledNode<'a>) -> LayoutBox<'a>
     root
 }
 
+
+/**
+ *  Traversing the Layout Tree
+ *
+ *  The entry point to this code is the layout function, which takes a LayoutBox and
+ *  calculates its dimensions. We'll break this function into three cases, and implement
+ *  only one of them for now:
+ */
 impl LayoutBox {
     // Constructor function
     fn new(box_type: BoxType) -> LayoutBox {
@@ -143,10 +151,11 @@ impl LayoutBox {
         }
     }
 
-    /*
-        If a block node contains an inline child, create an anonymous block box to
-        contain it. If there are several inline children in a row, put them all in
-        the same anonymous container.
+
+    /**
+     *  If a block node contains an inline child, create an anonymous block box to
+     *  contain it. If there are several inline children in a row, put them all in
+     *  the same anonymous container.
      */
     /// Where a new inline child should go.
     fn get_inline_container(&mut self) -> &mut LayoutBox {
@@ -163,23 +172,14 @@ impl LayoutBox {
             }
         }
     }
-}
 
 
-/*
-    Traversing the Layout Tree
-
-    The entry point to this code is the layout function, which takes a LayoutBox and
-    calculates its dimensions. We'll break this function into three cases, and implement
-    only one of them for now:
- */
-impl LayoutBox {
-    /*
-        Traversing the Layout Tree
-
-        The entry point to this code is the layout function, which takes a LayoutBox
-        and calculates its dimensions. We’ll break this function into three cases,
-        and implement only one of them for now:
+    /**
+     *  Traversing the Layout Tree
+     *
+     *  The entry point to this code is the layout function, which takes a LayoutBox
+     *  and calculates its dimensions. We’ll break this function into three cases,
+     *  and implement only one of them for now:
      */
     /// Lay out a box and its descendants.
     fn layout(&mut self, containing_block: Dimensions) {
@@ -262,11 +262,10 @@ impl LayoutBox {
          *  and an algorithm for solving them. The following code implements that algorithm.
          */
 
-        /*
-           First we add up the margin, padding, border, and content widths.
-           The "css::Value:to_px" helper method converts lengths to their numerical values.
-           If a property is set to "auto", it returns 0 so it doesn't affect the sum.
-
+        /**
+         *  First we add up the margin, padding, border, and content widths.
+         *  The "css::Value:to_px" helper method converts lengths to their numerical values.
+         *  If a property is set to "auto", it returns 0 so it doesn't affect the sum.
          */
         let total: f32 = [
             &margin_left, &margin_right,
@@ -280,10 +279,10 @@ impl LayoutBox {
          *  to the container width, we'll need to adjust something to make it equal.
          */
 
-        /*
-            If the  width or margins are set to "auto", they can expand or contract to fit
-            the available space. Following the spec, we first check if the box is too big.
-            If so, we set any expandable margins to zero.
+        /**
+         *  If the  width or margins are set to "auto", they can expand or contract to fit
+         *  the available space. Following the spec, we first check if the box is too big.
+         *  If so, we set any expandable margins to zero.
          */
         /// If width is not auto and the total is wider than the container,
         /// treat auto margins as 0.
@@ -296,20 +295,20 @@ impl LayoutBox {
             }
         }
 
-        /*
-            If the box is too large for its container, it "overflows" the container.
-            If it's too small, it will "underflow", leaving extra space. We'll calculate
-            the underflow-the amount of extra space left in the container. (If this
-            number is negative, it is actually an overflow.)
+        /**
+         *  If the box is too large for its container, it "overflows" the container.
+         *  If it's too small, it will "underflow", leaving extra space. We'll calculate
+         *  the underflow-the amount of extra space left in the container. (If this
+         *  number is negative, it is actually an overflow.)
          */
         let underflow: f32 = containing_block.content.width - total;
 
-        /*
-            We now follow the spec's [algorithm](https://www.w3.org/TR/CSS2/visudet.html#blockwidth)
-            for eliminating any overflow or underflow by adjusting the expandable dimensions.
-            If there are no "auto" dimensions, we adjust the right margin. (Yes, this means
-            the margin may be [negative](https://www.smashingmagazine.com/2009/07/the-definitive-guide-to-using-negative-margins/)
-            in the case of an overflow!)
+        /**
+         *  We now follow the spec's [algorithm](https://www.w3.org/TR/CSS2/visudet.html#blockwidth)
+         *  for eliminating any overflow or underflow by adjusting the expandable dimensions.
+         *  If there are no "auto" dimensions, we adjust the right margin. (Yes, this means
+         *  the margin may be [negative](https://www.smashingmagazine.com/2009/07/the-definitive-guide-to-using-negative-margins/)
+         *  in the case of an overflow!)
          */
         match (width == auto, margin_left == auto, margin_right == auto) {
             // If the values are overconstrained, calculate margin_right.
@@ -358,6 +357,7 @@ impl LayoutBox {
          */
     }
 
+
     /**
      *  Positioning
      *
@@ -388,5 +388,21 @@ impl LayoutBox {
         // Position the box below all the previous boxes in the container.
         d.content.y = containing_block.content.height + containing_block.content.y +
             d.margin.top + d.border.top + d.padding.top;
+    }
+
+
+    /**
+     *  Children
+     *
+     *  Here's the code that recursively lays out the box's contents. As it loops through
+     *  the child boxes, it keeps track of the total content height. This is used by the
+     *  positioning code (above) to find the vertical position of the next child.
+     */
+    fn layout_block_children(&mut self) {
+        for child in &mut self.children {
+            child.layout(self.dimensions);
+            // Increment the height so each child is laid out below the previous one.
+            self.dimensions.content.height += child.dimensions.margin_box().height;
+        }
     }
 }

@@ -141,13 +141,20 @@ fn build_layout_tree<'a>(style_node: &'a style::StyledNode<'a>) -> LayoutBox<'a>
  *  calculates its dimensions. We'll break this function into three cases, and implement
  *  only one of them for now:
  */
-impl LayoutBox {
+impl<'a> LayoutBox<'a> {
     // Constructor function
     fn new(box_type: BoxType) -> LayoutBox {
         LayoutBox {
             box_type,
             dimensions: Default::default(), // initially set all fields to 0.0
             children: Vec::new(),
+        }
+    }
+
+    fn get_style_node(&self) -> &'a style::StyledNode<'a> {
+        match self.box_type {
+            BoxType::BlockNode(node) | BoxType::InlineNode(node) => node,
+            BoxType::AnonymousBlock => panic!("Anonymous block box has no style node")
         }
     }
 
@@ -227,7 +234,7 @@ impl LayoutBox {
      *  the CSS width property and all the left and right edge sizes.
      */
     fn calculate_block_width(&mut self, containing_block: Dimensions) {
-        let style: style::StyledNode = self.get_style_node();
+        let style: &style::StyledNode = self.get_style_node();
 
         // `width` has initial value `auto`.
         let auto: css::Value = css::Value::Keyword("auto".to_string());
@@ -366,7 +373,7 @@ impl LayoutBox {
      *  the page.
      */
     fn calculate_block_position(&mut self, containing_block: Dimensions) {
-        let style: style::StyledNode = self.get_style_node();
+        let style: &style::StyledNode = self.get_style_node();
         let d: &mut Dimensions = &mut self.dimensions;
 
         // margin, border, and padding have initial value 0.
@@ -403,6 +410,54 @@ impl LayoutBox {
             child.layout(self.dimensions);
             // Increment the height so each child is laid out below the previous one.
             self.dimensions.content.height += child.dimensions.margin_box().height;
+        }
+    }
+
+    /**
+     *  The "height" Property
+     *
+     *  By default, the box's height is equal to the height of its contents. But if
+     *  the "height" property is set to an explicit length, we'll use that instead:
+     */
+    fn calculate_block_height(&mut self) {
+        /// If the height is set to an explicit length, use that exact length.
+        /// Otherwise, just keep the value set by `layout_block_children`.
+        if let Some(css::Value::Length(h, css::Unit::Px)) = self.get_style_node().value("height") {
+            self.dimensions.content.height = h;
+        }
+    }
+}
+
+
+/**
+ *  The total vertical space taken up by each child is the height of its "margin box",
+ *  which we calculate like so:
+ */
+
+impl Dimensions {
+    // The area covered by the content area plus its padding.
+    fn padding_box(self) -> Rect {
+        self.content.expanded_by(self.padding)
+    }
+
+    // The area covered by the content area plus padding and borders.
+    fn border_box(self) -> Rect {
+        self.padding_box().expanded_by(self.border)
+    }
+
+    // The area covered by the content area plus padding, borders, and margin.
+    fn margin_box(self) -> Rect {
+        self.border_box().expanded_by(self.margin)
+    }
+}
+
+impl Rect {
+    fn expanded_by(self, edge: EdgeSizes) -> Rect {
+        Rect {
+            x: self.x - edge.left,
+            y: self.y - edge.top,
+            width: self.width + edge.left + edge.right,
+            height: self.height + edge.top + edge.bottom,
         }
     }
 }

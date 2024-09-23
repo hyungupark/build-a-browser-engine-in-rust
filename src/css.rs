@@ -84,7 +84,7 @@ pub struct Declaration {
         Value::Length(30, Unit::Px)
         Value::ColorValue(Color { r: 0, g: 0, b: 0, a: 1 })
  */
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Value {
     Keyword(String),
     Length(f32, Unit),
@@ -99,7 +99,7 @@ pub enum Value {
     e.g.
         Unit::Px, Unit::Em, Unit::Rem
  */
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Unit {
     Px,
     // insert more units here
@@ -114,7 +114,7 @@ pub enum Unit {
 
     Rust note: u8 is an 8-bit unsigned integer, and f32 is a 32-bit float
  */
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Color {
     r: u8, // red
     g: u8, // green

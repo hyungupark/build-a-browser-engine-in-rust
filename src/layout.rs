@@ -29,7 +29,7 @@ use crate::{css, style};
 
 /// Position of the content area relative to the document origin:
 #[derive(Copy)]
-struct Rect {
+pub struct Rect {
     x: f32,
     y: f32,
     width: f32,

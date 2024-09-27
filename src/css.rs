@@ -116,10 +116,10 @@ pub enum Unit {
  */
 #[derive(Clone, Copy, PartialEq)]
 pub struct Color {
-    r: u8, // red
-    g: u8, // green
-    b: u8, // blue
-    a: u8, // alpha
+    pub r: u8, // red
+    pub g: u8, // green
+    pub b: u8, // blue
+    pub a: u8, // alpha
 }
 
 
